@@ -1,47 +1,45 @@
 #!/bin/bash
 
-# Input: Post-reverse state from EXPECTED_RESULT
-hex_input="dd 41 c8 5c ca 48 d3 43 da 48 d4 5c dc 5d d0 58"
+# Initialize variables
+hex_input=""
+key=""
 
-# Convert hex string to an array
-IFS=' ' read -r -a bytes <<< "$hex_input"
+# Parse options
+while getopts 'h:k:' OPTION; do
+  case "$OPTION" in
+    h) hex_input="$OPTARG" ;;
+    k) key="$OPTARG" ;;
+    *) 
+      echo "Usage: $0 -h \"hex1 hex2 ...\" -k key"
+      echo "Example: $0 -h \"ab db cd ef\" -k bf"
+      exit 1
+      ;;
+  esac
+done
 
-# Ensure exactly 16 bytes
-if [ ${#bytes[@]} -ne 16 ]; then
-    echo "Error: Input must be exactly 16 bytes in hex."
-    exit 1
-fi
-
-# XOR function
-xor_hex() {
-    local val=$1
-    local key=$2
-    printf "%02x" $(( 0x$val ^ 0x$key ))
+# Check if inputs are provided
+[ -z "$hex_input" ] || [ -z "$key" ] && {
+  echo "Error: Provide -h \"hex values\" and -k key"
+  exit 1
 }
 
-# Define XOR keys for even and odd indices
-key_even="bf"
-key_odd="2b"
+# Split hex input into array
+IFS=' ' read -r -a bytes <<< "$hex_input"
 
-# Apply XOR operation
+# Process each byte with one key
 output=()
 ascii_output=""
-for i in "${!bytes[@]}"; do
-    key=$([ $((i % 2)) -eq 0 ] && echo "$key_even" || echo "$key_odd")
-    result=$(xor_hex "${bytes[$i]}" "$key")
-    output+=("$result")
-    
-    # Convert to ASCII (if printable)
-    dec=$(( 0x$result ))
-    if [[ $dec -ge 32 && $dec -le 126 ]]; then
-        ascii_output+=$(printf "\\$(printf '%03o' $dec)")
-    else
-        ascii_output+="."
-    fi
+for hex in "${bytes[@]}"; do
+  # Simple XOR reversal
+  result=$((16#$hex ^ 16#$key))
+  result_hex=$(printf "%02x" "$result")
+  output+=("$result_hex")
+  
+  # ASCII if printable
+  [ $result -ge 32 ] && [ $result -le 126 ] && ascii_output+=$(printf "\\x$result_hex") || ascii_output+="."
 done
 
 # Print results
-echo "Input (post-reverse): $hex_input"
-echo "After reversing XOR:  ${output[*]}"
-echo "ASCII characters:     $ascii_output"
-
+echo "Input:          $hex_input"
+echo "After XOR ($key): ${output[*]}"
+echo "ASCII (if any): $(echo -e "$ascii_output")"
