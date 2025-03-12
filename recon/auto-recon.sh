@@ -8,6 +8,7 @@ if [ $# -ne 1 ]; then
 fi
 
 TARGET="$1"
+fullp="$(pwd)"
 OUTPUT_DIR="recon/$TARGET"
 WORDLIST="/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt"  # Adjust this path to your wordlist
 
@@ -20,14 +21,22 @@ echo "[+] Output directory: $OUTPUT_DIR"
 #amass enum -d "$TARGET" -passive -o "$OUTPUT_DIR/amass_subdomains.txt"
 
 
-echo "[+] Running AssetFinder..."
-assetfinder "$TARGET" > "$OUTPUT_DIR/assetfinder_subdomains.txt"
+echo "[*] Starting SUB DOMAIN ENUM"
+echo "[!] Target locked: $1"
+echo "[+] Probing subdomains..."
 
-echo "[+] Filtering Output..."
-cat "$OUTPUT_DIR/assetfinder_subdomains.txt" | rg "$TARGET" | tee -a "$OUTPUT_DIR/filtered_subdomains.txt"
-# Combine subdomains
-#echo "[+] Combining subdomains..."
-#cat "$OUTPUT_DIR/amass_subdomains.txt" "$OUTPUT_DIR/sublist3r_subdomains.txt" | sort -u > "$OUTPUT_DIR/all_subdomains.txt"
+echo "[+] Running AssetFinder..."
+assetfinder --subs-only "$TARGET"  | anew "$OUTPUT_DIR/subdomains.txt"
+echo "[+] Running Subfinder"
+subfinder -d "$TARGET" -silent | anew "$OUTPUT_DIR/subdomain.txt"
+
+echo "[>] Output: $OUTPUT_DIR/subdomains.txt"
+
+
+echo "[+] Running httprobe..."
+cat "$OUTPUT_DIR/subdomain.txt" | httprobe -prefer-https | tee -a "$OUTPUT_DIR/alive.txt" 
+
+smap "$TARGET" -oG "$OUTPUT_DIR/Scan.txt"
 
 # Run httpx
 echo "[+] General Response Running httpx..."
