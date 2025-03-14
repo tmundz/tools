@@ -25,7 +25,7 @@ echo "[!] Target locked: $1"
 echo "[+] Probing subdomains..."
 
 echo "[+] Running AssetFinder..."
-assetfinder --subs-only "$TARGET"  | anew "$OUTPUT_DIR/subdomains.txt"
+assetfinder --subs-only "$TARGET"  | anew "$OUTPUT_DIR/subdomain.txt"
 echo "[+] Running Subfinder"
 subfinder -d "$TARGET" -silent | anew "$OUTPUT_DIR/subdomain.txt"
 
@@ -36,13 +36,13 @@ echo "[+] Running Katana..."
 katana -u "$TARGET" -d 3 - jc -rl 5 -j "$OUTPUT_DIR/Katana.json"
 
 echo "[+] Running httprobe..."
-cat "$OUTPUT_DIR/subdomain.txt" | httprobe -prefer-https | tee -a "$OUTPUT_DIR/alive.txt" 
+cat "$OUTPUT_DIR/subdomain.txt" | httprobe | rg "https://" | tee -a "$OUTPUT_DIR/alive.txt" 
 
 smap "$TARGET" -oG "$OUTPUT_DIR/Scan.txt"
 
 
 
-gowitness scan file "$OUTPUT_DIR/alive.txt"
+gowitness scan file -f "$OUTPUT_DIR/alive.txt"
 
 mv "screenshots/" "$OUTPUT_DIR" 
 
