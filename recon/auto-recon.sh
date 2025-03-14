@@ -10,7 +10,6 @@ fi
 TARGET="$1"
 fullp="$(pwd)"
 OUTPUT_DIR="recon/$TARGET"
-WORDLIST="/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt"  # Adjust this path to your wordlist
 
 # Create output directory
 mkdir -p "$OUTPUT_DIR"
@@ -33,22 +32,17 @@ subfinder -d "$TARGET" -silent | anew "$OUTPUT_DIR/subdomain.txt"
 echo "[>] Output: $OUTPUT_DIR/subdomains.txt"
 
 
+echo "[+] Running Katana..."
+katana -u "$TARGET" -d 3 - jc -rl 5 -j "$OUTPUT_DIR/Katana.json"
+
 echo "[+] Running httprobe..."
 cat "$OUTPUT_DIR/subdomain.txt" | httprobe -prefer-https | tee -a "$OUTPUT_DIR/alive.txt" 
 
 smap "$TARGET" -oG "$OUTPUT_DIR/Scan.txt"
 
-# Run httpx
-echo "[+] General Response Running httpx..."
-cat "$OUTPUT_DIR/filtered_subdomains.txt" | httpx-pd -o "$OUTPUT_DIR/alive_subdomains.txt"
 
-echo "[+] General Response Running httpx..."
-cat "$OUTPUT_DIR/filtered_subdomains.txt" | httpx-pd -sc -o "$OUTPUT_DIR/sc-alive_subdomains.txt"
-#Run gau
-echo "[+] Running gau..."
-echo "$TARGET" | gau > "$OUTPUT_DIR/gau_urls.txt"
 
-gowitness scan file -f "$OUTPUT_DIR/alive_subdomains.txt"
+gowitness scan file "$OUTPUT_DIR/alive.txt"
 
 mv "screenshots/" "$OUTPUT_DIR" 
 
